@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>YouTube Content Search Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(78, 205, 196, 0.3);
+        }
+
+        .companies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .company-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .company-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .company-card:active {
+            transform: translateY(-1px);
+        }
+
+        .company-card.selected {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .company-card.selected::before {
+            content: '✓';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .company-card.selected .company-name {
+            color: white;
+        }
+
+        .company-card.selected .company-desc {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .company-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .company-desc {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .selected-count {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .videos-container {
+            margin-top: 30px;
+        }
+
+        .company-section {
+            margin-bottom: 40px;
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .company-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .videos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .video-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            border-color: #667eea;
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+
+        .video-info {
+            padding: 15px;
+        }
+
+        .video-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #333;
+            line-height: 1.4;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .video-title:hover {
+            color: #667eea;
+        }
+
+        .video-date {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .video-description {
+            color: #777;
+            font-size: 14px;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            color: #c66;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #856404;
+        }
+
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            .controls {
+                flex-direction: column;
+            }
+            
+            .videos-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📹 YouTube Content Search Tool</h1>
+        
+        <div class="warning">
+            <strong>⚠️ RSS Feed Notice:</strong> Due to CORS restrictions and YouTube's API limitations, the RSS feed feature may not work reliably for all channels. Use the "Open Official Channels" button for direct access to the latest videos.
+        </div>
+        
+        <div class="controls">
+            <button onclick="selectAll()" class="btn btn-secondary">✅ Select All</button>
+            <button onclick="clearAll()" class="btn btn-secondary">❌ Clear All</button>
+            <button onclick="fetchLatestVideos()" class="btn btn-primary">🚀 Fetch Latest Videos</button>
+            <button onclick="openChannels()" class="btn btn-primary">📺 Open Official Channels</button>
+        </div>
+
+        <div class="companies-grid" id="companiesGrid">
+            <!-- Companies will be populated by JavaScript -->
+        </div>
+
+        <div class="selected-count" id="selectedCount">👆 Click on company cards above to select them</div>
+
+        <div class="videos-container" id="videosContainer">
+            <!-- Videos will be displayed here -->
+        </div>
+
+        <div class="footer">
+            <p>🚀 <strong>Fetch Latest Videos:</strong> Attempts to retrieve videos via RSS feeds (may be limited by CORS)</p>
+            <p>📺 <strong>Open Official Channels:</strong> Opens the official YouTube channels directly (recommended)</p>
+            <p>For the most reliable access to latest videos, use the "Open Official Channels" button.</p>
+        </div>
+    </div>
+
+    <script>
+        const companies = [
+            { 
+                name: 'Hitachi Vantara', 
+                desc: 'Enterprise storage solutions',
+                channelUrl: 'https://www.youtube.com/@HitachiVantara',
+                channelId: 'UCQTuLi8pIkdoEZhz_9BdLjA'
+            },
+            { 
+                name: 'Pure Storage', 
+                desc: 'All-flash data storage',
+                channelUrl: 'https://www.youtube.com/@purestorage',
+                channelId: 'UCFgHUdXlc1f5wJwqLYUKC7g'
+            },
+            { 
+                name: 'NetApp', 
+                desc: 'Hybrid cloud data services',
+                channelUrl: 'https://www.youtube.com/@netapp',
+                channelId: 'UCNYy0LjYyI9ZVWZewwbfgvQ'
+            },
+            { 
+                name: 'Hewlett Packard Enterprise', 
+                desc: 'HPE storage and servers',
+                channelUrl: 'https://www.youtube.com/@HPE',
+                channelId: 'UCIIlWcckIzDaHm5HLIwOZfQ'
+            },
+            { 
+                name: 'Dell Technologies', 
+                desc: 'Enterprise infrastructure',
+                channelUrl: 'https://www.youtube.com/@DellTechnologies',
+                channelId: 'UC2YQdegc3T9UWjU4K9qg6Ng'
+            },
+            { 
+                name: 'Huawei', 
+                desc: 'ICT infrastructure solutions',
+                channelUrl: 'https://www.youtube.com/@huawei',
+                channelId: 'UCdZMWOPm3wYBhM9cgrP3sRA'
+            },
+            { 
+                name: 'IBM Technology', 
+                desc: 'Enterprise technology',
+                channelUrl: 'https://www.youtube.com/@IBMTechnology',
+                channelId: 'UCKWaEZ-_VweaEx1j62do_vQ'
+            },
+            { 
+                name: 'Supermicro', 
+                desc: 'Server and storage solutions',
+                channelUrl: 'https://www.youtube.com/@SupermicroPage',
+                channelId: 'UCOmfF4jXmL8WiR8gJiSKoSA'
+            }
+        ];
+
+        let selectedCompanies = new Set();
+
+        function initializeGrid() {
+            const grid = document.getElementById('companiesGrid');
+            grid.innerHTML = companies.map((company, index) => `
+                <div class="company-card" onclick="toggleCompany('${company.name}', this)" data-company="${company.name}">
+                    <div class="company-name">${company.name}</div>
+                    <div class="company-desc">${company.desc}</div>
+                </div>
+            `).join('');
+            updateSelectedCount();
+        }
+
+        function toggleCompany(companyName, element) {
+            if (selectedCompanies.has(companyName)) {
+                selectedCompanies.delete(companyName);
+                element.classList.remove('selected');
+            } else {
+                selectedCompanies.add(companyName);
+                element.classList.add('selected');
+            }
+            updateSelectedCount();
+        }
+
+        function selectAll() {
+            selectedCompanies.clear();
+            companies.forEach(company => selectedCompanies.add(company.name));
+            
+            document.querySelectorAll('.company-card').forEach(card => {
+                card.classList.add('selected');
+            });
+            updateSelectedCount();
+        }
+
+        function clearAll() {
+            selectedCompanies.clear();
+            document.querySelectorAll('.company-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            updateSelectedCount();
+            document.getElementById('videosContainer').innerHTML = '';
+        }
+
+        function updateSelectedCount() {
+            const count = selectedCompanies.size;
+            const countElement = document.getElementById('selectedCount');
+            
+            if (count === 0) {
+                countElement.textContent = '👆 Click on company cards above to select them';
+                countElement.style.color = '#667eea';
+            } else {
+                countElement.textContent = `✅ ${count} ${count === 1 ? 'company' : 'companies'} selected`;
+                countElement.style.color = '#4ecdc4';
+                countElement.style.fontWeight = '700';
+            }
+        }
+
+        function openChannels() {
+            if (selectedCompanies.size === 0) {
+                alert('Please select at least one company to open their official channel.');
+                return;
+            }
+
+            let delay = 0;
+            selectedCompanies.forEach(companyName => {
+                const company = companies.find(c => c.name === companyName);
+                if (company && company.channelUrl) {
+                    setTimeout(() => {
+                        window.open(company.channelUrl + '/videos', '_blank');
+                    }, delay);
+                    delay += 300;
+                }
+            });
+        }
+
+        async function fetchLatestVideos() {
+            if (selectedCompanies.size === 0) {
+                alert('Please select at least one company to fetch videos.');
+                return;
+            }
+
+            const videosContainer = document.getElementById('videosContainer');
+            videosContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Fetching latest videos from selected companies...</p>
+                    <small>Note: This may take a moment and some channels may not load due to CORS restrictions</small>
+                </div>
+            `;
+
+            const selectedCompaniesData = companies.filter(c => selectedCompanies.has(c.name));
+            let successCount = 0;
+            
+            for (const company of selectedCompaniesData) {
+                try {
+                    const videos = await fetchCompanyVideos(company);
+                    if (videos && videos.length > 0) {
+                        displayCompanyVideos(company, videos);
+                        successCount++;
+                    } else {
+                        displayError(company, 'No videos found or channel RSS feed not accessible');
+                    }
+                } catch (error) {
+                    console.error(`Error fetching videos for ${company.name}:`, error);
+                    displayError(company, error.message);
+                }
+            }
+
+            // Remove loading spinner
+            const loadingElement = videosContainer.querySelector('.loading');
+            if (loadingElement) {
+                loadingElement.remove();
+            }
+
+            // Show summary message
+            if (successCount === 0) {
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'warning';
+                summaryDiv.innerHTML = `
+                    <strong>RSS Feed Access Limited</strong><br>
+                    Unable to fetch videos via RSS feeds due to CORS restrictions or incorrect channel IDs. 
+                    This is a common limitation when accessing YouTube data from web browsers.<br><br>
+                    <strong>Recommendation:</strong> Use the "Open Official Channels" button to view the latest videos directly on YouTube.
+                `;
+                videosContainer.appendChild(summaryDiv);
+            }
+        }
+
+        async function fetchCompanyVideos(company) {
+            const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${company.channelId}`;
+            
+            // Try multiple CORS proxy services
+            const proxies = [
+                `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`,
+                `https://cors-anywhere.herokuapp.com/${rssUrl}`,
+                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rssUrl)}`
+            ];
+
+            for (let i = 0; i < proxies.length; i++) {
+                try {
+                    const response = await fetch(proxies[i], {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json, text/plain, */*',
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    let xmlContent = data.contents || data.body || data;
+                    
+                    if (typeof xmlContent !== 'string') {
+                        xmlContent = JSON.stringify(xmlContent);
+                    }
+
+                    // Parse XML
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
+                    
+                    // Check for parsing errors
+                    const parserError = xmlDoc.querySelector('parsererror');
+                    if (parserError) {
+                        throw new Error('XML parsing failed');
+                    }
+                    
+                    // Extract video entries
+                    const entries = xmlDoc.getElementsByTagName('entry');
+                    
+                    if (entries.length === 0) {
+                        throw new Error('No video entries found in RSS feed');
+                    }
+
+                    const videos = [];
+                    
+                    for (let j = 0; j < Math.min(entries.length, 5); j++) {
+                        const entry = entries[j];
+                        const title = entry.getElementsByTagName('title')[0]?.textContent || 'No title';
+                        const link = entry.getElementsByTagName('link')[0]?.getAttribute('href') || '';
+                        const published = entry.getElementsByTagName('published')[0]?.textContent || '';
+                        const description = entry.getElementsByTagName('media:description')[0]?.textContent || 
+                                         entry.getElementsByTagName('description')[0]?.textContent || '';
+                        
+                        // Extract video ID from link
+                        const videoId = link.split('v=')[1]?.split('&')[0];
+                        if (!videoId) continue;
+                        
+                        const thumbnail = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+                        
+                        videos.push({
+                            title,
+                            link,
+                            published: new Date(published),
+                            description: description.substring(0, 150) + (description.length > 150 ? '...' : ''),
+                            thumbnail,
+                            videoId
+                        });
+                    }
+                    
+                    // Sort by date (newest first)
+                    return videos.sort((a, b) => b.published - a.published);
+                    
+                } catch (error) {
+                    console.warn(`Proxy ${i + 1} failed for ${company.name}:`, error.message);
+                    if (i === proxies.length - 1) {
+                        throw new Error(`All proxy attempts failed. Last error: ${error.message}`);
+                    }
+                }
+            }
+        }
+
+        function displayCompanyVideos(company, videos) {
+            const videosContainer = document.getElementById('videosContainer');
+            
+            const companySection = document.createElement('div');
+            companySection.className = 'company-section';
+            
+            companySection.innerHTML = `
+                <div class="company-title">${company.name} - Latest Videos (${videos.length})</div>
+                <div class="videos-grid">
+                    ${videos.map(video => `
+                        <div class="video-card">
+                            <img class="video-thumbnail" 
+                                 src="${video.thumbnail}" 
+                                 alt="${video.title}"
+                                 onclick="window.open('${video.link}', '_blank')"
+                                 onerror="this.src='https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg'">
+                            <div class="video-info">
+                                <a href="${video.link}" target="_blank" class="video-title">${video.title}</a>
+                                <div class="video-date">${formatDate(video.published)}</div>
+                                <div class="video-description">${video.description}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            videosContainer.appendChild(companySection);
+        }
+
+        function displayError(company, errorMessage) {
+            const videosContainer = document.getElementById('videosContainer');
+            
+            const errorSection = document.createElement('div');
+            errorSection.className = 'company-section';
+            errorSection.innerHTML = `
+                <div class="company-title">${company.name}</div>
+                <div class="error">
+                    <strong>Unable to fetch videos:</strong> ${errorMessage}
+                    <br><br>
+                    <strong>Alternative:</strong> <a href="${company.channelUrl}/videos" target="_blank" style="color: #667eea; text-decoration: underline;">
+                        Click here to view ${company.name}'s latest videos directly on YouTube
+                    </a>
+                </div>
+            `;
+            
+            videosContainer.appendChild(errorSection);
+        }
+
+        function formatDate(date) {
+            const now = new Date();
+            const diffTime = Math.abs(now - date);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 1) {
+                return '1 day ago';
+            } else if (diffDays < 7) {
+                return `${diffDays} days ago`;
+            } else if (diffDays < 30) {
+                const weeks = Math.floor(diffDays / 7);
+                return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+            } else if (diffDays < 365) {
+                const months = Math.floor(diffDays / 30);
+                return `${months} month${months > 1 ? 's' : ''} ago`;
+            } else {
+                return date.toLocaleDateString();
+            }
+        }
+
+        // Initialize the grid when page loads
+        initializeGrid();
+    </script>
+</body>
+</html>
